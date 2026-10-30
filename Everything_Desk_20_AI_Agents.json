@@ -1,0 +1,2083 @@
+{
+  "name": "Everything Desk - 20 AI Agents (Groq gpt-oss-120b)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent-chat",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "b03298a3-f784-4d9d-b6c3-ed7b4fb01197",
+      "name": "Chat Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1728,
+        384
+      ],
+      "webhookId": "agent-chat"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.body.message }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "497806e7-707a-46e8-a557-9f0a7a7fdd8e",
+      "name": "Has Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1488,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ reply: 'Type a message first.' }) }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "c3e905e9-740a-4ea4-9423-b88d04196e09",
+      "name": "Respond Empty",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -1248,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Chat Webhook').first().json.body.message }}",
+        "options": {
+          "systemMessage": "You are a safety and intent guard. Reply with ONLY JSON: {\"ok\":true,\"reason\":\"\"}. Set ok=false (with a short reason) for illegal activity, sexual content involving minors, self-harm instructions, weapons, malware, or deepfakes of real people. Otherwise ok=true."
+        }
+      },
+      "id": "4ddab4a6-61dd-4eda-a1fd-bb35f735f25b",
+      "name": "1 Guard Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -1248,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.output || '';\nlet j = {};\ntry { const m = raw.match(/\\{[\\s\\S]*\\}/); j = JSON.parse(m ? m[0] : raw); } catch (e) {}\nreturn [{ json: { ok: j.ok !== false, reason: j.reason || 'That request is not allowed.', message: $('Chat Webhook').first().json.body.message } }];"
+      },
+      "id": "1ebbc163-d14b-40de-82c1-2bc06fed68a5",
+      "name": "Parse Guard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1008,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "84126642-702f-44a1-8798-9fdaaf4494ce",
+      "name": "Allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -768,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ reply: $json.reason }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "005c2e70-b435-4ebf-9565-fbbf598d6410",
+      "name": "Respond Blocked",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -528,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message }}",
+        "options": {
+          "systemMessage": "You are an intelligent AI workflow router.\n\nAnalyze the user's message and return ONLY valid JSON.\n\nAvailable routing modes:\n\n1. If the user asks to run all agents, execute every available agent.\nReturn:\n{\"mode\":\"all\",\"category\":\"all\"}\n\n2. Grocery requests:\n{\"mode\":\"smart\",\"category\":\"grocery\"}\n\n3. Recipe, food, meal, or nutrition requests:\n{\"mode\":\"smart\",\"category\":\"food\"}\n\n4. Electronics, gadgets, or device requests:\n{\"mode\":\"smart\",\"category\":\"electronics\"}\n\n5. Image generation or image prompt requests:\n{\"mode\":\"smart\",\"category\":\"image\"}\n\n6. Excel, spreadsheet, table, or formula requests:\n{\"mode\":\"smart\",\"category\":\"excel\"}\n\n7. Task planning and scheduling requests:\n{\"mode\":\"smart\",\"category\":\"organizer\"}\n\n8. General questions:\n{\"mode\":\"smart\",\"category\":\"other\"}\n\nImportant:\n- \"Run all agents\", \"execute all agents\", and \"show every agent's output\" must always return mode all and category all.\n- Never classify an explicit all-agents request as other.\n- Return JSON only. No Markdown or explanations."
+        }
+      },
+      "id": "4c9991a6-f722-4803-8edc-c0dee479dbf5",
+      "name": "2 Router Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -528,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst raw = $input.first().json.output || '';\n\nlet j = {};\n\ntry {\n  const m = raw.match(/\\{[\\s\\S]*\\}/);\n  j = JSON.parse(m ? m[0] : raw);\n} catch (e) {\n  j = {};\n}\n\nconst allowedCategories = [\n  'grocery',\n  'food',\n  'electronics',\n  'image',\n  'excel',\n  'other',\n  'organizer',\n  'all'\n];\n\nconst category = allowedCategories.includes(j.category)\n  ? j.category\n  : 'other';\n\nconst mode = j.mode === 'all' || category === 'all'\n  ? 'all'\n  : 'smart';\n\nconst webhook = $('Chat Webhook').first().json;\n\nconst message =\n  webhook.body?.message ||\n  webhook.message ||\n  '';\n\nconst sessionId =\n  webhook.body?.sessionId ||\n  webhook.sessionId ||\n  'default';\n\nreturn [{\n  json: {\n    mode,\n    category,\n    message,\n    sessionId\n  }\n}];\n"
+      },
+      "id": "7d023d1e-9aba-41a7-8d90-3c94cbdd697a",
+      "name": "Parse Route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "rgrocery",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "grocery",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "grocery"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "rfood",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "food",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "food"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "relectronics",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "electronics",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "electronics"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "rimage",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "image",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "image"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "rexcel",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "excel",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "excel"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "rother",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "other",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "other"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "850bc04e-be95-40d7-a02e-45763c7759c0",
+      "name": "Route by Category",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        96,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Parse Route').first().json.message }}",
+        "options": {
+          "systemMessage": "You plan groceries. Output a shopping list grouped by aisle (produce, dairy, pantry, etc.) with quantities."
+        }
+      },
+      "id": "57502a0c-99cf-4f0a-b248-9096d70f70ff",
+      "name": "3 Grocery Planner Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        240,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'User request: ' + $('Parse Route').first().json.message + '\\n\\nSpecialist draft:\\n' + $json.output }}",
+        "options": {
+          "systemMessage": "Add rough price ranges per item and a total. Say prices are estimates. Suggest 2 savings swaps."
+        }
+      },
+      "id": "d3e476fe-fe5a-4153-b31c-5e51cf992b16",
+      "name": "4 Grocery Budget Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        512,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Parse Route').first().json.message }}",
+        "options": {
+          "systemMessage": "You are a chef. Give a recipe or meal idea with ingredients and short steps."
+        }
+      },
+      "id": "03a899de-d49e-48f9-9a19-458a2de5f350",
+      "name": "5 Recipe Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        240,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'User request: ' + $('Parse Route').first().json.message + '\\n\\nSpecialist draft:\\n' + $json.output }}",
+        "options": {
+          "systemMessage": "Add approximate calories, protein, carbs and fat per serving plus allergen notes. Label them estimates."
+        }
+      },
+      "id": "8ac8b401-3f10-4c81-afaf-31bd1872e2f9",
+      "name": "6 Nutrition Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        512,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Parse Route').first().json.message }}",
+        "options": {
+          "systemMessage": "You explain electronics. Cover the specs that matter. Never invent exact specs for a model; say when unsure."
+        }
+      },
+      "id": "37cdaa6c-b300-420a-9030-a97e4ed1087d",
+      "name": "7 Electronics Specs Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        240,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'User request: ' + $('Parse Route').first().json.message + '\\n\\nSpecialist draft:\\n' + $json.output }}",
+        "options": {
+          "systemMessage": "Give a short buying recommendation with trade-offs and 3 criteria. Prices change; give no fake links."
+        }
+      },
+      "id": "3b8afdda-db43-4092-98df-1f1339a474b4",
+      "name": "8 Electronics Advisor Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        512,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Parse Route').first().json.message }}",
+        "options": {
+          "systemMessage": "Write a detailed image-generation prompt: subject, setting, lighting, composition, mood. One paragraph."
+        }
+      },
+      "id": "38ca706a-9ec9-4bb8-bcab-f2a33a0d2baa",
+      "name": "11 Image Prompt Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        240,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'User request: ' + $('Parse Route').first().json.message + '\\n\\nSpecialist draft:\\n' + $json.output }}",
+        "options": {
+          "systemMessage": "Refine into ONE final prompt of max 60 words with style keywords. No real people's likeness, logos or brands. Output ONLY the prompt."
+        }
+      },
+      "id": "c417b98d-c2bb-458c-be37-8b3aac6049e4",
+      "name": "12 Image Style Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        512,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Parse Route').first().json.message }}",
+        "options": {
+          "systemMessage": "Design a spreadsheet for the request: column names with types, then 8 realistic sample rows."
+        }
+      },
+      "id": "c4a0ad35-9017-4a0f-a681-ebc67aff9f0d",
+      "name": "13 Excel Schema Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        240,
+        832
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'User request: ' + $('Parse Route').first().json.message + '\\n\\nSpecialist draft:\\n' + $json.output }}",
+        "options": {
+          "systemMessage": "Add useful Excel formulas (totals, averages) with cell references. Keep the table from the previous draft."
+        }
+      },
+      "id": "bdadb693-a74b-4697-8e1b-9dc1dedc9fd4",
+      "name": "14 Excel Formula Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        512,
+        832
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Parse Route').first().json.message }}",
+        "options": {
+          "systemMessage": "You are a helpful assistant. Answer concisely and accurately."
+        }
+      },
+      "id": "f3e0ea68-5ebd-4c8d-a00f-01e78e3ca9a5",
+      "name": "9 General Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -80,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'User request: ' + $('Parse Route').first().json.message + '\\n\\nSpecialist draft:\\n' + $json.output }}",
+        "options": {
+          "systemMessage": "Turn the draft into a clear prioritized action list or notes."
+        }
+      },
+      "id": "935cb546-088c-4dea-b647-8be039bdebf4",
+      "name": "10 Organizer Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        592,
+        1024
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Category: ' + $('Parse Route').first().json.category + '\\nUser request: ' + $('Parse Route').first().json.message + '\\n\\nSpecialist output:\\n' + $json.output }}",
+        "options": {
+          "systemMessage": "Return ONLY JSON: {\"title\":\"max 8 words\",\"details\":\"main answer, plain text, max 1000 chars\",\"extra\":\"short tags or notes\",\"image_prompt\":\"final image prompt or empty string\",\"table\":{\"columns\":[\"...\"],\"rows\":[[\"...\"]]} or null}. Table is required for category excel; for grocery use columns Item, Qty, Est. Price; max 15 rows; every row has as many cells as columns."
+        }
+      },
+      "id": "8fc73432-d1da-4820-8b52-464dff975b2e",
+      "name": "15 Data Extractor Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1104,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "options": {
+          "systemMessage": "You receive JSON. Fix it so it is valid JSON with the same keys. Make each table row match the column count, trim long text, replace missing values with empty strings. Return ONLY the JSON."
+        }
+      },
+      "id": "a56a9d52-61f0-45e0-b818-56a241c3c5e8",
+      "name": "16 Data Validator Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1072,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.output || '';\nlet j = {};\ntry { const m = raw.match(/\\{[\\s\\S]*\\}/); j = JSON.parse(m ? m[0] : raw); } catch (e) {}\nconst cat = $('Parse Route').first().json.category;\nconst msg = $('Parse Route').first().json.message;\nconst table = (j.table && Array.isArray(j.table.columns) && Array.isArray(j.table.rows)) ? j.table : null;\nconst prompt = (j.image_prompt || msg).toString();\nconst image_url = (cat === 'image' || (cat === 'all' && j.image_prompt)) ? 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt) + '?width=768&height=768&nologo=true&seed=' + Math.floor(Math.random() * 1e6) : '';\nreturn [{ json: { timestamp: new Date().toISOString(), category: cat, title: String(j.title || msg).slice(0, 80), details: String(j.details || '').slice(0, 1000), extra: String(j.extra || '').slice(0, 300), image_url, table_json: table ? JSON.stringify(table) : '' } }];"
+      },
+      "id": "3a800350-731a-4955-9ec5-072c4406c8f3",
+      "name": "Build Record",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1c9g5JsfOafGa5uxiXC8oou2PlOZKL-XVyzXW3gB3UqE",
+          "mode": "list",
+          "cachedResultName": "AiEhent",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1c9g5JsfOafGa5uxiXC8oou2PlOZKL-XVyzXW3gB3UqE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1130401589,
+          "mode": "list",
+          "cachedResultName": "gheh",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1c9g5JsfOafGa5uxiXC8oou2PlOZKL-XVyzXW3gB3UqE/edit#gid=1130401589"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "c9dcb32c-ff22-48dc-b80f-66787be77627",
+      "name": "Save to Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1584,
+        576
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9lICdIlKo9HCbuqz",
+          "name": "Google Sheets account 36"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Saved record: ' + JSON.stringify($('Build Record').first().json) }}",
+        "options": {
+          "systemMessage": "Give ONE short insight or next step about the saved record, max 25 words."
+        }
+      },
+      "id": "77f8489c-39d9-43ad-9b6a-a48bb8ea3463",
+      "name": "17 Insight Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1840,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'User request: ' + $('Parse Route').first().json.message + '\\nRecord: ' + $('Build Record').first().json.title + ' - ' + $('Build Record').first().json.details + '\\nInsight: ' + $json.output }}",
+        "options": {
+          "systemMessage": "Write a friendly reply (max 150 words, plain text, no markdown) using the user's request, the saved record details and the insight. Mention it was saved to the sheet."
+        }
+      },
+      "id": "c8ab3779-4aa2-401d-8996-f33f93ec2c12",
+      "name": "18 Response Writer Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        2208,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "options": {
+          "systemMessage": "Fact-check and polish the reply. Remove unsafe or doubtful claims. Return ONLY the final reply text, max 150 words."
+        }
+      },
+      "id": "4099e326-f2ac-43ff-9cb1-8ecc553b8786",
+      "name": "19 QA Reviewer Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        2464,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $('Build Record').first().json;\nlet table = null;\ntry { table = r.table_json ? JSON.parse(r.table_json) : null; } catch (e) {}\nlet agent_outputs = null;\ntry { agent_outputs = $('Combine Outputs').first().json.agent_outputs || null; } catch (e) {}\nreturn [{ json: { reply: $input.first().json.output || 'Saved.', category: r.category, saved: { title: r.title, details: r.details }, table, image_url: r.image_url, timestamp: r.timestamp, table_json: r.table_json, agent_outputs } }];"
+      },
+      "id": "8d129020-1030-470c-bf15-0b70b523ce31",
+      "name": "Final Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2624,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "319d6c1c-baae-40aa-bc06-2f71b4a1e57c",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2880,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "path": "agent-dashboard",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "508e3bda-f2c2-47a5-95b6-b2585b9fd708",
+      "name": "Dashboard Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1728,
+        1376
+      ],
+      "webhookId": "agent-dashboard"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1c9g5JsfOafGa5uxiXC8oou2PlOZKL-XVyzXW3gB3UqE",
+          "mode": "list",
+          "cachedResultName": "AiEhent",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1c9g5JsfOafGa5uxiXC8oou2PlOZKL-XVyzXW3gB3UqE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1130401589,
+          "mode": "list",
+          "cachedResultName": "gheh",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1c9g5JsfOafGa5uxiXC8oou2PlOZKL-XVyzXW3gB3UqE/edit#gid=1130401589"
+        },
+        "options": {}
+      },
+      "id": "166173f4-ac26-4237-bf10-72e6f4899f4a",
+      "name": "Read Sheet Rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -1456,
+        1376
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9lICdIlKo9HCbuqz",
+          "name": "Google Sheets account 36"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json).filter(r => r.category);\nconst counts = {};\nfor (const r of rows) counts[r.category] = (counts[r.category] || 0) + 1;\nreturn [{ json: { counts, total: rows.length, rows: rows.slice(-60).reverse() } }];"
+      },
+      "id": "1ff6345c-4347-41d2-8fad-fe09042c2637",
+      "name": "Summarize Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1200,
+        1376
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Stats: ' + JSON.stringify({ counts: $json.counts, total: $json.total, recent: $json.rows.slice(0, 15).map(r => r.category + ': ' + r.title) }) }}",
+        "options": {
+          "systemMessage": "Write 2 short sentences summarizing the activity and suggest one next action. Plain text."
+        }
+      },
+      "id": "d65ce417-2a22-469d-9b87-49ae72e23f92",
+      "name": "20 Dashboard Analyst Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -944,
+        1376
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const s = $('Summarize Rows').first().json;\nreturn [{ json: { counts: s.counts, total: s.total, rows: s.rows, insight: $input.first().json.output || '' } }];"
+      },
+      "id": "3d557613-1b95-4dc3-917f-47b5649c5ad6",
+      "name": "Build Dashboard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        1376
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "3bb052c0-25ff-4f8d-93ae-db1323f1256b",
+      "name": "Respond Dashboard",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -416,
+        1376
+      ]
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "360de9de-c201-4ad9-83e8-dcb0ab722524",
+      "name": "Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        416,
+        1808
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "43SqrqIWVfsUQr43",
+          "name": "Groq account 59"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1136,
+        528
+      ],
+      "id": "c413643b-e89a-4110-b6f2-b29460bfccbe",
+      "name": "Wait",
+      "webhookId": "7bdc6197-3b56-4d0c-8faa-76abd41c5c05"
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        336
+      ],
+      "id": "f43a21da-228b-4182-9af9-7657fbfa81e1",
+      "name": "Wait1",
+      "webhookId": "a2645fbf-4b06-4676-b0ec-b96c990217b6"
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        816,
+        112
+      ],
+      "id": "8313c717-b660-4ae9-88d6-2a1bc6230776",
+      "name": "Wait2",
+      "webhookId": "f7c4d04a-0c2e-41e1-8058-1e28afd4c523"
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2192,
+        448
+      ],
+      "id": "65526f4f-a742-4979-b51f-2d52be079e34",
+      "name": "Wait3",
+      "webhookId": "2449bae0-9c0e-4b53-8c16-78bf31c80d55"
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2064,
+        976
+      ],
+      "id": "d53a184c-ae72-4e76-93e6-c34236509e2f",
+      "name": "Wait4",
+      "webhookId": "9e6b2773-d7cc-4754-b593-f708d5073e86"
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        864,
+        1088
+      ],
+      "id": "47494243-03a0-4f02-830e-165baed2de46",
+      "name": "Wait5",
+      "webhookId": "bf1b4dcc-24c9-4ecb-83ab-ef124ce076da"
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        160,
+        1136
+      ],
+      "id": "7a3b4f79-bf3b-4d85-9570-757293415769",
+      "name": "Wait6",
+      "webhookId": "4b53f914-2e97-453a-af8f-9f10608cccf7"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -816,
+        -448
+      ],
+      "id": "cbef6f88-09ab-4d01-9c28-a88491f8f668",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "wSCXJUunzFPMcm8n",
+          "name": "Groq account 60"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "85be150f-a689-4a96-a653-05a9b2387212",
+              "leftValue": "={{ $('Parse Route').first().json.mode }}",
+              "rightValue": "all",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -112,
+        272
+      ],
+      "id": "d982b9ce-40db-45b0-871d-393b4a7d5ae9",
+      "name": "Run All?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "138f1b06-2b13-4997-bb07-273e87916056",
+              "leftValue": "={{ $('Parse Route').first().json.mode }}",
+              "rightValue": "all",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        976,
+        112
+      ],
+      "id": "c45ac110-b4f4-4fd0-9952-d9b308c8727f",
+      "name": "All Mode? 1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "08d53c9a-bbe9-4f52-b379-25fc35545b36",
+              "leftValue": "={{ $('Parse Route').first().json.mode }}",
+              "rightValue": "all",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        688,
+        304
+      ],
+      "id": "c4548568-c69d-4de6-8091-fbd76a55cb11",
+      "name": "All Mode? 2"
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        832,
+        304
+      ],
+      "id": "8b960507-8645-4f33-ae75-e71ad0ce9a02",
+      "name": "All Wait 2",
+      "webhookId": "2025f91a-2d51-4002-82e6-7b3b57ee3b2c"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0af18ca2-271f-4703-ac36-b5afc2b0b17d",
+              "leftValue": "={{ $('Parse Route').first().json.mode }}",
+              "rightValue": "all",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        688,
+        480
+      ],
+      "id": "0be44678-3f88-4fb7-9bfd-c8b82243aeb9",
+      "name": "All Mode? 3"
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        832,
+        480
+      ],
+      "id": "57f89503-3be3-4d95-b5a9-d0a538907efa",
+      "name": "All Wait 3",
+      "webhookId": "899dc631-d899-4c39-a5ee-0f8c6c610458"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0a246278-78c8-4d57-a7c0-4c0075997fd5",
+              "leftValue": "={{ $('Parse Route').first().json.mode }}",
+              "rightValue": "all",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        688,
+        656
+      ],
+      "id": "619072d3-ac5c-4986-b31a-fca6f470415a",
+      "name": "All Mode? 4"
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        832,
+        656
+      ],
+      "id": "7a0da221-939a-488a-8bd5-40c890a838a6",
+      "name": "All Wait 4",
+      "webhookId": "a2e6491d-94fb-495d-9d5f-0125e0cc1c81"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3ffb2e7d-c999-499c-a3cc-8be82aa54c76",
+              "leftValue": "={{ $('Parse Route').first().json.mode }}",
+              "rightValue": "all",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        688,
+        832
+      ],
+      "id": "ae44e7c1-9779-4921-9778-bb49a9bafd9d",
+      "name": "All Mode? 5"
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        832,
+        832
+      ],
+      "id": "e6d4b529-c5b9-4e4e-87aa-91e02a3f443f",
+      "name": "All Wait 5",
+      "webhookId": "f874565c-5d5e-4a19-9a71-065a26e8abdb"
+    },
+    {
+      "parameters": {
+        "jsCode": "const route = $('Parse Route').first().json;\nif (route.mode !== 'all') return $input.all();\n\nconst agents = [\n  '3 Grocery Planner Agent', '4 Grocery Budget Agent', '5 Recipe Agent', '6 Nutrition Agent',\n  '7 Electronics Specs Agent', '8 Electronics Advisor Agent', '11 Image Prompt Agent',\n  '12 Image Style Agent', '13 Excel Schema Agent', '14 Excel Formula Agent', '9 General Agent'\n];\n\nconst agent_outputs = agents.map(name => {\n  let out = '';\n  try { out = String($(name).first().json.output || ''); } catch (e) { out = '(no output)'; }\n  return { agent: name, output: out };\n});\n\nconst text = agent_outputs.map(o => '## ' + o.agent + '\\n' + o.output.slice(0, 700)).join('\\n\\n');\nreturn [{ json: { mode: 'all', output: 'Combined outputs of all specialist agents:\\n\\n' + text, agent_outputs } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        1136
+      ],
+      "id": "cdc27afe-2465-4bcb-9f4e-411493c542be",
+      "name": "Combine Outputs"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Route by Category": {
+      "main": [
+        [
+          {
+            "node": "3 Grocery Planner Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "5 Recipe Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "7 Electronics Specs Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "11 Image Prompt Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "13 Excel Schema Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "9 General Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "9 General Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3 Grocery Planner Agent": {
+      "main": [
+        [
+          {
+            "node": "4 Grocery Budget Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4 Grocery Budget Agent": {
+      "main": [
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5 Recipe Agent": {
+      "main": [
+        [
+          {
+            "node": "6 Nutrition Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6 Nutrition Agent": {
+      "main": [
+        [
+          {
+            "node": "All Mode? 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7 Electronics Specs Agent": {
+      "main": [
+        [
+          {
+            "node": "8 Electronics Advisor Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8 Electronics Advisor Agent": {
+      "main": [
+        [
+          {
+            "node": "All Mode? 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "11 Image Prompt Agent": {
+      "main": [
+        [
+          {
+            "node": "12 Image Style Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "12 Image Style Agent": {
+      "main": [
+        [
+          {
+            "node": "All Mode? 4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "13 Excel Schema Agent": {
+      "main": [
+        [
+          {
+            "node": "14 Excel Formula Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "14 Excel Formula Agent": {
+      "main": [
+        [
+          {
+            "node": "All Mode? 5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "9 General Agent": {
+      "main": [
+        [
+          {
+            "node": "Wait6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10 Organizer Agent": {
+      "main": [
+        [
+          {
+            "node": "Wait5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "1 Guard Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "2 Router Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "4 Grocery Budget Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "5 Recipe Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "6 Nutrition Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "7 Electronics Specs Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "8 Electronics Advisor Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "11 Image Prompt Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "12 Image Style Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "13 Excel Schema Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "14 Excel Formula Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "9 General Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "10 Organizer Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "15 Data Extractor Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "16 Data Validator Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "17 Insight Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "18 Response Writer Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "19 QA Reviewer Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "20 Dashboard Analyst Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Webhook": {
+      "main": [
+        [
+          {
+            "node": "Has Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Message?": {
+      "main": [
+        [
+          {
+            "node": "1 Guard Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1 Guard Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Guard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Guard": {
+      "main": [
+        [
+          {
+            "node": "Allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allowed?": {
+      "main": [
+        [
+          {
+            "node": "2 Router Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Blocked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2 Router Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Route": {
+      "main": [
+        [
+          {
+            "node": "Run All?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "15 Data Extractor Agent": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "16 Data Validator Agent": {
+      "main": [
+        [
+          {
+            "node": "Build Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Record": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Google Sheet": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "17 Insight Agent": {
+      "main": [
+        [
+          {
+            "node": "Wait3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "18 Response Writer Agent": {
+      "main": [
+        [
+          {
+            "node": "Wait4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "19 QA Reviewer Agent": {
+      "main": [
+        [
+          {
+            "node": "Final Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final Format": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dashboard Webhook": {
+      "main": [
+        [
+          {
+            "node": "Read Sheet Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Sheet Rows": {
+      "main": [
+        [
+          {
+            "node": "Summarize Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize Rows": {
+      "main": [
+        [
+          {
+            "node": "20 Dashboard Analyst Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "20 Dashboard Analyst Agent": {
+      "main": [
+        [
+          {
+            "node": "Build Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Dashboard": {
+      "main": [
+        [
+          {
+            "node": "Respond Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "16 Data Validator Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "17 Insight Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait2": {
+      "main": [
+        [
+          {
+            "node": "All Mode? 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait3": {
+      "main": [
+        [
+          {
+            "node": "18 Response Writer Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait4": {
+      "main": [
+        [
+          {
+            "node": "19 QA Reviewer Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait5": {
+      "main": [
+        [
+          {
+            "node": "15 Data Extractor Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait6": {
+      "main": [
+        [
+          {
+            "node": "Combine Outputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "3 Grocery Planner Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run All?": {
+      "main": [
+        [
+          {
+            "node": "3 Grocery Planner Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Route by Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All Mode? 1": {
+      "main": [
+        [
+          {
+            "node": "5 Recipe Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "15 Data Extractor Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All Mode? 2": {
+      "main": [
+        [
+          {
+            "node": "All Wait 2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "15 Data Extractor Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All Wait 2": {
+      "main": [
+        [
+          {
+            "node": "7 Electronics Specs Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All Mode? 3": {
+      "main": [
+        [
+          {
+            "node": "All Wait 3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "15 Data Extractor Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All Wait 3": {
+      "main": [
+        [
+          {
+            "node": "11 Image Prompt Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All Mode? 4": {
+      "main": [
+        [
+          {
+            "node": "All Wait 4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "15 Data Extractor Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All Wait 4": {
+      "main": [
+        [
+          {
+            "node": "13 Excel Schema Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All Mode? 5": {
+      "main": [
+        [
+          {
+            "node": "All Wait 5",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "15 Data Extractor Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All Wait 5": {
+      "main": [
+        [
+          {
+            "node": "9 General Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Outputs": {
+      "main": [
+        [
+          {
+            "node": "10 Organizer Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "53ca6613-49d6-47a5-9f81-559ce162502b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "20a2b29b41e62032ff4c50ddaa2eadfd59ac09002295456d9ff46f64e0e49af7"
+  },
+  "id": "5hUxTThOdTah7rwG",
+  "tags": []
+}
