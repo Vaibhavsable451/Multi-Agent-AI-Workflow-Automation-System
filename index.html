@@ -624,204 +624,872 @@ tr:hover td { background: rgba(255,255,255,0.03); color: var(--ink); }
 <dialog id="dlg" aria-modal="true" aria-labelledby="dlg-title"></dialog>
 
 <script>
+
+// ============================================================
+// EVERYTHING DESK — UPDATED FRONTEND JAVASCRIPT
+// ============================================================
+
+// IMPORTANT:
+// Leave empty to use local demo mode.
+// For production, enter your actual n8n production webhook URL.
+// Example: https://your-workspace.app.n8n.cloud/webhook
+
 const BASE = "http://localhost:5678/webhook/agent-dashboard";
-const CATS = {grocery:"Grocery",food:"Food",electronics:"Electronics",image:"Images",excel:"Excel",other:"Other"};
-const CAT_ICONS = {grocery:"🛒",food:"🍽️",electronics:"💻",image:"🖼️",excel:"📊",other:"✦"};
-const QUICK = ["Weekly grocery list under $60","Quick vegetarian dinner","Compare budget laptops","Monthly expense spreadsheet","Draw a futuristic city at night"];
-const sid = "s-" + Math.random().toString(36).slice(2,10);
+
+const CATS = {
+  grocery: "Grocery",
+  food: "Food",
+  electronics: "Electronics",
+  image: "Images",
+  excel: "Excel",
+  other: "Other"
+};
+
+const CAT_ICONS = {
+  grocery: "🛒",
+  food: "🍽️",
+  electronics: "💻",
+  image: "🖼️",
+  excel: "📊",
+  other: "✦"
+};
+
+const QUICK = [
+  "Weekly grocery list under $60",
+  "Quick vegetarian dinner",
+  "Compare budget laptops",
+  "Monthly expense spreadsheet",
+  "Draw a futuristic city at night"
+];
+
+const sid = "s-" + Math.random().toString(36).slice(2, 10);
+
 const $ = id => document.getElementById(id);
-let rows = [], filter = "all";
 
-const el = (tag, props={}, ...kids) => {
+let rows = [];
+let filter = "all";
+
+// Normalize the webhook URL and avoid duplicated slashes.
+const WEBHOOK_BASE = BASE.trim().replace(/\/+$/, "");
+
+
+// ============================================================
+// DOM HELPERS
+// ============================================================
+
+const el = (tag, props = {}, ...kids) => {
   const e = Object.assign(document.createElement(tag), props);
-  e.append(...kids); return e;
-};
-const col = c => `var(--${CATS[c]?c:"other"})`;
-const fmtTime = ts => {
-  if(!ts) return "";
-  const d = new Date(ts);
-  return d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+  e.append(...kids);
+  return e;
 };
 
-function counts() { const c={}; rows.forEach(r=>c[r.category]=(c[r.category]||0)+1); return c; }
+const col = c => `var(--${CATS[c] ? c : "other"})`;
+
+const fmtTime = ts => {
+  if (!ts) return "";
+
+  const d = new Date(ts);
+
+  if (Number.isNaN(d.getTime())) return "";
+
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric"
+  });
+};
+
+
+// ============================================================
+// SAFE RESPONSE HANDLER
+// Fixes: Unexpected end of JSON input
+// ============================================================
+
+async function readJSON(response) {
+  const text = await response.text();
+
+  if (!text.trim()) {
+    throw new Error(
+      `Empty server response (HTTP ${response.status}). Check your n8n Respond to Webhook node.`
+    );
+  }
+
+  let data;
+
+  try {
+    data = JSON.parse(text);
+  } catch (error) {
+    throw new Error(
+      `Backend returned invalid JSON: ${text.slice(0, 200)}`
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.message ||
+      data.error ||
+      `Server error: HTTP ${response.status}`
+    );
+  }
+
+  return data;
+}
+
+
+// ============================================================
+// RESPONSE NORMALIZATION
+// Supports common n8n response structures.
+// ============================================================
+
+function normalizeResponse(data) {
+  let result = Array.isArray(data) ? data[0] : data;
+
+  if (!result || typeof result !== "object") {
+    throw new Error("The AI backend returned an invalid response.");
+  }
+
+  if (result.data && typeof result.data === "object") {
+    result = result.data;
+  }
+
+  const reply =
+    result.reply ||
+    result.output ||
+    result.text ||
+    result.response ||
+    result.message;
+
+  if (typeof reply !== "string" || !reply.trim()) {
+    throw new Error(
+      "The AI workflow responded, but no reply text was found. Check your n8n response mapping."
+    );
+  }
+
+  return {
+    ...result,
+    reply
+  };
+}
+
+
+// ============================================================
+// SAMPLE DATA
+// ============================================================
+
+const SAMPLE_ROWS = [
+  {
+    category: "grocery",
+    title: "Budget Grocery List under $60",
+    details: "A weekly plan covering produce, dairy, protein and pantry staples.",
+    table_json: JSON.stringify({
+      columns: ["Item", "Qty", "Est. Price"],
+      rows: [
+        ["Bananas", "6 pcs", "$0.70"],
+        ["Apples", "4 pcs", "$2.00"],
+        ["Eggs", "1 dozen", "$2.20"],
+        ["Milk", "1 gal", "$3.30"],
+        ["Brown rice", "1 lb", "$1.80"],
+        ["Lentils", "1 lb", "$1.50"],
+        ["Black beans", "2 cans", "$1.60"]
+      ]
+    }),
+    timestamp: "2026-10-30T06:29:27.643Z"
+  },
+  {
+    category: "food",
+    title: "Quick Veg Dinner",
+    details: "Chickpea and spinach curry with rice. About 30 minutes, serves 2.",
+    timestamp: "2026-10-30T06:21:00.000Z"
+  },
+  {
+    category: "electronics",
+    title: "Budget Laptop Pick",
+    details: "Look for 16 GB RAM, 512 GB SSD and a full HD screen. Compare battery life before buying.",
+    timestamp: "2026-10-30T06:39:05.220Z"
+  },
+  {
+    category: "grocery",
+    title: "Weekly Grocery List",
+    details: "Rice 2 kg, eggs 12, spinach 1 bag, milk 2 L, bananas 6.",
+    timestamp: "2026-10-30T06:37:40.505Z"
+  },
+  {
+    category: "other",
+    title: "iPhone 15 Pro vs Galaxy S24 Ultra",
+    details: "Compare camera, battery, performance and ecosystem.",
+    timestamp: "2026-10-30T06:39:05.220Z"
+  }
+];
+
+
+// ============================================================
+// COUNTS AND CATEGORY FILTERS
+// ============================================================
+
+function counts() {
+  const c = {};
+
+  rows.forEach(r => {
+    c[r.category] = (c[r.category] || 0) + 1;
+  });
+
+  return c;
+}
 
 function renderChips() {
-  const c = counts(), bar=$("bar"), chips=$("chips");
-  bar.replaceChildren(...Object.keys(CATS).map(k=>{
-    const i=el("i"); i.style.background=col(k); i.style.flex=(c[k]||0)+" 1 0"; return i;
-  }));
-  const mk=(k,label,n)=>{
-    const b=el("button",{className:"chip"},el("b"),`${label}`,el("sup",{style:"font-size:0.68rem;margin-left:4px;opacity:0.7"},String(n)));
-    b.style.setProperty("--c", k==="all"?"rgba(255,255,255,0.6)":col(k));
-    b.setAttribute("aria-pressed", filter===k?"true":"false");
-    b.onclick=()=>{ filter=k; renderChips(); renderBoard(); };
+  const c = counts();
+  const bar = $("bar");
+  const chips = $("chips");
+
+  bar.replaceChildren(
+    ...Object.keys(CATS).map(k => {
+      const i = el("i");
+      i.style.background = col(k);
+      i.style.flex = (c[k] || 0) + " 1 0";
+      return i;
+    })
+  );
+
+  const mk = (k, label, n) => {
+    const b = el(
+      "button",
+      { className: "chip" },
+      el("b"),
+      label,
+      el(
+        "sup",
+        {
+          style: "font-size:0.68rem;margin-left:4px;opacity:0.7"
+        },
+        String(n)
+      )
+    );
+
+    b.style.setProperty(
+      "--c",
+      k === "all" ? "rgba(255,255,255,0.6)" : col(k)
+    );
+
+    b.setAttribute(
+      "aria-pressed",
+      filter === k ? "true" : "false"
+    );
+
+    b.onclick = () => {
+      filter = k;
+      renderChips();
+      renderBoard();
+    };
+
     return b;
   };
-  chips.replaceChildren(mk("all","All",rows.length),...Object.entries(CATS).map(([k,v])=>mk(k,v,c[k]||0)));
+
+  chips.replaceChildren(
+    mk("all", "All", rows.length),
+    ...Object.entries(CATS).map(([k, v]) =>
+      mk(k, v, c[k] || 0)
+    )
+  );
 }
 
-function parseTable(r){ try{ return r.table_json?JSON.parse(r.table_json):null; }catch(e){return null;} }
 
-function download(table, name){
-  const data=[table.columns,...table.rows];
-  if(window.XLSX){ const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),"Data"); XLSX.writeFile(wb,name+".xlsx"); return; }
-  const csv=data.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\n");
-  const a=el("a",{href:URL.createObjectURL(new Blob([csv],{type:"text/csv"})),download:name+".csv"}); a.click();
+// ============================================================
+// EXCEL / CSV DOWNLOAD
+// ============================================================
+
+function parseTable(r) {
+  try {
+    return r.table_json
+      ? JSON.parse(r.table_json)
+      : null;
+  } catch (e) {
+    return null;
+  }
 }
 
-function tableEl(t){
-  const w=el("div",{className:"tw"}), tb=el("table");
-  tb.append(el("thead",{},el("tr",{},...t.columns.map(c=>el("th",{},String(c))))),
-            el("tbody",{},...t.rows.map(r=>el("tr",{},...r.map(v=>el("td",{},String(v)))))));
-  w.append(tb); return w;
+function download(table, name) {
+  if (!table || !Array.isArray(table.columns) ||
+      !Array.isArray(table.rows)) {
+    return;
+  }
+
+  const data = [table.columns, ...table.rows];
+
+  if (window.XLSX) {
+    const wb = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.aoa_to_sheet(data),
+      "Data"
+    );
+
+    XLSX.writeFile(wb, name + ".xlsx");
+    return;
+  }
+
+  const csv = data.map(r =>
+    r.map(v =>
+      '"' + String(v).replace(/"/g, '""') + '"'
+    ).join(",")
+  ).join("\n");
+
+  const a = el("a", {
+    href: URL.createObjectURL(
+      new Blob([csv], { type: "text/csv" })
+    ),
+    download: name + ".csv"
+  });
+
+  a.click();
+
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-function open(r){
-  const d=$("dlg"), t=parseTable(r);
-  const header=el("div",{className:"dlg-header"});
-  const h2=el("h2",{id:"dlg-title"},r.title||"Details");
-  const closeBtn=el("button",{className:"dlg-close",onclick:()=>d.close(),"aria-label":"Close"},"×");
-  header.append(h2,closeBtn);
 
-  const body=el("div",{className:"dlg-body"});
-  if(r.details) body.append(el("p",{},r.details));
-  if(r.image_url) body.append(el("img",{src:r.image_url,alt:r.title||"Image",loading:"lazy"}));
-  if(t){
+// ============================================================
+// TABLE RENDERING
+// ============================================================
+
+function tableEl(t) {
+  const w = el("div", { className: "tw" });
+  const tb = el("table");
+
+  tb.append(
+    el(
+      "thead",
+      {},
+      el(
+        "tr",
+        {},
+        ...t.columns.map(c =>
+          el("th", {}, String(c))
+        )
+      )
+    ),
+    el(
+      "tbody",
+      {},
+      ...t.rows.map(r =>
+        el(
+          "tr",
+          {},
+          ...r.map(v =>
+            el("td", {}, String(v))
+          )
+        )
+      )
+    )
+  );
+
+  w.append(tb);
+  return w;
+}
+
+
+// ============================================================
+// DETAIL DIALOG
+// ============================================================
+
+function open(r) {
+  const d = $("dlg");
+  const t = parseTable(r);
+
+  const header = el("div", { className: "dlg-header" });
+
+  const h2 = el(
+    "h2",
+    { id: "dlg-title" },
+    r.title || "Details"
+  );
+
+  const closeBtn = el(
+    "button",
+    {
+      className: "dlg-close",
+      onclick: () => d.close(),
+      "aria-label": "Close"
+    },
+    "×"
+  );
+
+  header.append(h2, closeBtn);
+
+  const body = el("div", { className: "dlg-body" });
+
+  if (r.details) {
+    body.append(el("p", {}, r.details));
+  }
+
+  if (r.image_url) {
+    body.append(
+      el("img", {
+        src: r.image_url,
+        alt: r.title || "Image",
+        loading: "lazy"
+      })
+    );
+  }
+
+  if (t) {
     body.append(tableEl(t));
-    const btnRow=el("div",{className:"btn-row"});
-    btnRow.append(el("button",{className:"btn",onclick:()=>download(t,r.title||"data")},"📥 Download Excel"));
+
+    const btnRow = el("div", {
+      className: "btn-row"
+    });
+
+    btnRow.append(
+      el(
+        "button",
+        {
+          className: "btn",
+          onclick: () => download(t, r.title || "data")
+        },
+        "📥 Download Excel"
+      )
+    );
+
     body.append(btnRow);
   }
-  d.replaceChildren(header,body);
+
+  d.replaceChildren(header, body);
   d.showModal();
 }
 
-function renderBoard(freshId){
-  const list=rows.filter(r=>filter==="all"||r.category===filter), b=$("board");
-  $("board-count").textContent=list.length+" item"+(list.length===1?"":"s");
-  if(!list.length){
-    b.replaceChildren(el("div",{className:"empty"},
-      el("div",{className:"empty-icon"},"📭"),
-      el("p",{className:"empty-text"},"Nothing here yet. Ask the agents for something and it will appear as a card.")));
+
+// ============================================================
+// SAVED CARDS
+// ============================================================
+
+function renderBoard(freshId) {
+  const list = rows.filter(
+    r => filter === "all" || r.category === filter
+  );
+
+  const b = $("board");
+
+  $("board-count").textContent =
+    list.length + " item" + (list.length === 1 ? "" : "s");
+
+  if (!list.length) {
+    b.replaceChildren(
+      el(
+        "div",
+        { className: "empty" },
+        el("div", { className: "empty-icon" }, "📭"),
+        el(
+          "p",
+          { className: "empty-text" },
+          "Nothing here yet. Ask the agents for something and it will appear as a card."
+        )
+      )
+    );
+
     return;
   }
-  b.replaceChildren(...list.map(r=>{
-    const card=el("button",{className:"t"+(r.timestamp===freshId?" fresh":""),onclick:()=>open(r)});
-    card.style.setProperty("--c", col(r.category));
 
-    const accentBar=el("div",{className:"card-accent-bar"});
-    accentBar.style.background=col(r.category);
-    accentBar.style.boxShadow=`0 0 10px ${col(r.category)}`;
-    card.append(accentBar);
+  b.replaceChildren(
+    ...list.map(r => {
+      const card = el("button", {
+        className:
+          "t" + (r.timestamp === freshId ? " fresh" : ""),
+        onclick: () => open(r)
+      });
 
-    if(r.image_url) card.append(el("img",{src:r.image_url,alt:"",loading:"lazy"}));
+      card.style.setProperty("--c", col(r.category));
 
-    const body=el("div",{className:"card-body"});
-    body.append(el("span",{className:"card-category"},(CAT_ICONS[r.category]||"✦")+" "+(CATS[r.category]||"Other")));
-    body.append(el("h3",{},r.title||"Untitled"));
-    if(r.details) body.append(el("p",{},r.details));
+      const accentBar = el("div", {
+        className: "card-accent-bar"
+      });
 
-    const footer=el("div",{className:"card-footer"});
-    footer.append(el("span",{className:"card-time"},fmtTime(r.timestamp)));
-    footer.append(el("span",{className:"card-arrow",ariaHidden:"true"},"↗"));
-    body.append(footer);
+      accentBar.style.background = col(r.category);
+      accentBar.style.boxShadow = `0 0 10px ${col(r.category)}`;
 
-    card.append(body);
-    return card;
-  }));
+      card.append(accentBar);
+
+      if (r.image_url) {
+        card.append(
+          el("img", {
+            src: r.image_url,
+            alt: "",
+            loading: "lazy"
+          })
+        );
+      }
+
+      const body = el("div", {
+        className: "card-body"
+      });
+
+      body.append(
+        el(
+          "span",
+          { className: "card-category" },
+          (CAT_ICONS[r.category] || "✦") +
+          " " +
+          (CATS[r.category] || "Other")
+        )
+      );
+
+      body.append(
+        el("h3", {}, r.title || "Untitled")
+      );
+
+      if (r.details) {
+        body.append(
+          el("p", {}, r.details)
+        );
+      }
+
+      const footer = el("div", {
+        className: "card-footer"
+      });
+
+      footer.append(
+        el("span", {
+          className: "card-time"
+        }, fmtTime(r.timestamp))
+      );
+
+      footer.append(
+        el("span", {
+          className: "card-arrow",
+          ariaHidden: "true"
+        }, "↗")
+      );
+
+      body.append(footer);
+      card.append(body);
+
+      return card;
+    })
+  );
 }
 
-function say(text, cls="", extra){
-  const m=el("div",{className:"m "+cls},text);
-  if(extra) m.append(...extra);
+
+// ============================================================
+// CHAT MESSAGES
+// ============================================================
+
+function say(text, cls = "", extra) {
+  const m = el("div", {
+    className: "m " + cls
+  }, text);
+
+  if (extra) {
+    m.append(...extra);
+  }
+
   $("log").append(m);
-  $("log").scrollTop=1e9;
+  $("log").scrollTop = $("log").scrollHeight;
+
   return m;
 }
 
-function showTyping(){
-  const m=el("div",{className:"m"});
-  const t=el("div",{className:"typing"},el("span"),el("span"),el("span"));
-  m.append(t); $("log").append(m); $("log").scrollTop=1e9;
+function showTyping() {
+  const m = el("div", { className: "m" });
+
+  const t = el(
+    "div",
+    { className: "typing" },
+    el("span"),
+    el("span"),
+    el("span")
+  );
+
+  m.append(t);
+  $("log").append(m);
+
+  $("log").scrollTop = $("log").scrollHeight;
+
   return m;
 }
+
+
+// ============================================================
+// DEMO MODE
+// ============================================================
 
 const demo = msg => {
-  const l=msg.toLowerCase();
-  const cat=/draw|image|picture|photo/.test(l)?"image":/sheet|excel|spreadsheet/.test(l)?"excel":/laptop|phone|tv|camera|gadget/.test(l)?"electronics":/dinner|recipe|cook|meal/.test(l)?"food":/grocery|shopping|buy food/.test(l)?"grocery":"other";
-  const table = cat==="excel"||cat==="grocery"?{columns:["Item","Qty","Est. Price"],rows:[["Rice","2 kg","$4.50"],["Eggs","12","$3.20"],["Spinach","1 bag","$2.40"],["Bananas","6","$1.80"],["Milk","2 L","$3.10"]]}:null;
+  const l = msg.toLowerCase();
+
+  const cat =
+    /draw|image|picture|photo/.test(l) ? "image" :
+    /sheet|excel|spreadsheet/.test(l) ? "excel" :
+    /laptop|phone|tv|camera|gadget/.test(l) ? "electronics" :
+    /dinner|recipe|cook|meal/.test(l) ? "food" :
+    /grocery|shopping|buy food/.test(l) ? "grocery" :
+    "other";
+
+  const table =
+    cat === "excel" || cat === "grocery"
+      ? {
+          columns: ["Item", "Qty", "Est. Price"],
+          rows: [
+            ["Rice", "2 kg", "$4.50"],
+            ["Eggs", "12", "$3.20"],
+            ["Spinach", "1 bag", "$2.40"],
+            ["Bananas", "6", "$1.80"],
+            ["Milk", "2 L", "$3.10"]
+          ]
+        }
+      : null;
+
   return {
-    reply:"✦ Demo mode — agents are in preview. Add your n8n webhook URL to go fully live.",
-    category:cat,
-    saved:{title:msg.slice(0,48),details:"Agent summary for: "+msg},
-    table, table_json:table?JSON.stringify(table):"",
-    timestamp:new Date().toISOString(),
-    image_url:cat==="image"?"https://image.pollinations.ai/prompt/"+encodeURIComponent(msg)+"?width=768&height=768&nologo=true":""
+    reply:
+      "✦ Demo mode — this is a sample response. Configure your n8n production webhook URL to connect the real AI agents.",
+
+    category: cat,
+
+    saved: {
+      title: msg.slice(0, 48),
+      details: "Demo summary for: " + msg
+    },
+
+    table,
+    table_json: table ? JSON.stringify(table) : "",
+
+    timestamp: new Date().toISOString(),
+
+    image_url: ""
   };
 };
 
-async function ask(msg){
-  if(!BASE){ await new Promise(r=>setTimeout(r,800)); return demo(msg); }
-  const res=await fetch(BASE+"/agent-chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg,sessionId:sid})});
-  if(!res.ok) throw new Error("Agents returned "+res.status+". Check that the workflow is active.");
-  return res.json();
+
+// ============================================================
+// CHAT API
+// ============================================================
+
+async function ask(msg) {
+
+  // If BASE is empty, use demo mode.
+  if (!WEBHOOK_BASE) {
+    await new Promise(resolve =>
+      setTimeout(resolve, 600)
+    );
+
+    return demo(msg);
+  }
+
+  const res = await fetch(
+    `${WEBHOOK_BASE}/agent-chat`,
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        message: msg,
+        sessionId: sid
+      })
+    }
+  );
+
+  const data = await readJSON(res);
+
+  return normalizeResponse(data);
 }
 
-async function load(){
-  if(!BASE){ renderChips(); renderBoard(); return; }
-  try{
-    const d=await (await fetch(BASE+"/agent-dashboard")).json();
-    rows=d.rows||[];
-    if(d.insight) $("insight").textContent=d.insight;
-  } catch(e){ say("Could not load the dashboard. Check your base URL.","err"); }
-  renderChips(); renderBoard();
+
+// ============================================================
+// DASHBOARD API
+// ============================================================
+
+async function load() {
+
+  // Demo mode: show sample cards.
+  if (!WEBHOOK_BASE) {
+    rows = [...SAMPLE_ROWS];
+
+    renderChips();
+    renderBoard();
+
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `${WEBHOOK_BASE}/agent-dashboard`,
+      {
+        method: "GET",
+        headers: {
+          "Accept": "application/json"
+        }
+      }
+    );
+
+    const data = await readJSON(res);
+
+    const result = Array.isArray(data)
+      ? data[0]
+      : data;
+
+    rows = Array.isArray(result.rows)
+      ? result.rows
+      : [];
+
+    if (result.insight) {
+      $("insight").textContent = result.insight;
+    }
+
+  } catch (error) {
+    console.error("Dashboard error:", error);
+
+    rows = [...SAMPLE_ROWS];
+
+    say(
+      "Dashboard connection failed. Showing sample cards instead. Check your n8n dashboard webhook.",
+      "err"
+    );
+  }
+
+  renderChips();
+  renderBoard();
 }
 
-// Load sample cards from the page's embedded data
-const SAMPLE_ROWS = [
-  {category:"grocery",title:"Budget Grocery List <$60>",details:"A $60-max weekly plan covering produce, dairy, protein, and pantry staples.",table_json:JSON.stringify({columns:["Item","Qty","Est. Price"],rows:[["Bananas","6 pcs","$0.70"],["Apples","4 pcs","$2.00"],["Eggs","1 dozen","$2.20"],["Milk","1 gal","$3.30"],["Brown rice","1 lb","$1.80"],["Lentils","1 lb","$1.50"],["Black beans","2 cans","$1.60"]]}),timestamp:"2026-10-30T06:29:27.643Z"},
-  {category:"food",title:"Quick Veg Dinner",details:"Chickpea and spinach curry with rice. About 30 minutes, serves 2.",timestamp:"2026-10-30T06:21:00.000Z"},
-  {category:"electronics",title:"Budget Laptop Pick",details:"Look for 16 GB RAM, 512 GB SSD and a full HD screen. Compare battery life before buying.",timestamp:"2026-10-30T06:39:05.220Z"},
-  {category:"grocery",title:"Weekly Grocery List",details:"Rice 2 kg, eggs 12, spinach 1 bag, milk 2 L, bananas 6. Estimated total about $25.",timestamp:"2026-10-30T06:37:40.505Z"},
-  {category:"other",title:"iPhone 15 Pro vs Galaxy S24 Ultra",details:"iPhone 15 Pro offers Apple ecosystem integration and strong video. Galaxy S24 Ultra has bigger screen, 200 MP camera, and longer battery.",timestamp:"2026-10-30T06:39:05.220Z"},
-];
+
+// ============================================================
+// CHAT SUBMISSION
+// ============================================================
 
 $("f").onsubmit = async e => {
   e.preventDefault();
-  const v=$("in").value.trim(); if(!v) return;
-  $("in").value=""; $("go").disabled=true;
-  say(v,"me");
-  const typing=showTyping();
-  try{
-    const d=await ask(v);
+
+  const v = $("in").value.trim();
+
+  if (!v) return;
+
+  $("in").value = "";
+  $("go").disabled = true;
+
+  say(v, "me");
+
+  const typing = showTyping();
+
+  try {
+    const d = await ask(v);
+
     typing.remove();
-    const extra=[];
-    if(d.image_url) extra.push(el("img",{src:d.image_url,alt:"Generated image",loading:"lazy"}));
-    if(d.table) extra.push(el("button",{className:"btn alt",style:"margin-top:10px",onclick:()=>download(d.table,d.saved?.title||"data")},"📥 Download Excel"));
-    say(d.reply,"",extra);
-    if(d.saved&&d.category){
-      rows.unshift({category:d.category,title:d.saved.title,details:d.saved.details,image_url:d.image_url||"",table_json:d.table_json||"",timestamp:d.timestamp});
-      renderChips(); renderBoard(d.timestamp);
+
+    const extra = [];
+
+    if (d.image_url) {
+      extra.push(
+        el("img", {
+          src: d.image_url,
+          alt: "Generated image",
+          loading: "lazy"
+        })
+      );
     }
-  } catch(err){
+
+    const table =
+      d.table ||
+      (d.table_json ? parseTable(d) : null);
+
+    if (table) {
+      extra.push(
+        el(
+          "button",
+          {
+            className: "btn alt",
+            style: "margin-top:10px",
+            onclick: () =>
+              download(table, d.saved?.title || "data")
+          },
+          "📥 Download Excel"
+        )
+      );
+    }
+
+    say(d.reply, "", extra);
+
+    if (d.saved && d.category) {
+      const timestamp =
+        d.timestamp || new Date().toISOString();
+
+      rows.unshift({
+        category: d.category,
+        title: d.saved.title || v.slice(0, 48),
+        details: d.saved.details || d.reply,
+        image_url: d.image_url || "",
+        table_json:
+          d.table_json ||
+          (table ? JSON.stringify(table) : ""),
+        timestamp
+      });
+
+      renderChips();
+      renderBoard(timestamp);
+    }
+
+  } catch (err) {
     typing.remove();
-    say(err.message||"Could not reach the agents.","err");
+
+    console.error("AI chat error:", err);
+
+    say(
+      err.message || "Could not reach the AI agents.",
+      "err"
+    );
+
+  } finally {
+    $("go").disabled = false;
+    $("in").focus();
   }
-  $("go").disabled=false; $("in").focus();
 };
 
-// Close dialog on backdrop click
-$("dlg").addEventListener("click", e => { if(e.target===$("dlg")) $("dlg").close(); });
 
-// Quick prompt buttons
-$("quick").replaceChildren(...QUICK.map(q=>el("button",{type:"button",onclick:()=>{ $("in").value=q; $("f").requestSubmit(); }},q)));
+// ============================================================
+// DIALOG BACKDROP
+// ============================================================
 
-// Welcome message
-say("✦ Hello! I'm your AI assistant. Ask me anything — groceries, recipes, tech advice, spreadsheets or images.");
+$("dlg").addEventListener("click", e => {
+  if (e.target === $("dlg")) {
+    $("dlg").close();
+  }
+});
 
-// Load data
-if(!BASE){ rows=[...SAMPLE_ROWS]; }
+
+// ============================================================
+// QUICK PROMPTS
+// ============================================================
+
+$("quick").replaceChildren(
+  ...QUICK.map(q =>
+    el(
+      "button",
+      {
+        type: "button",
+
+        onclick: () => {
+          $("in").value = q;
+          $("f").requestSubmit();
+        }
+      },
+      q
+    )
+  )
+);
+
+
+// ============================================================
+// INITIALIZE APPLICATION
+// ============================================================
+
+say(
+  "✦ Hello! I'm your AI assistant. Ask me anything — groceries, recipes, tech advice, spreadsheets or images."
+);
+
 load();
+
+console.log(
+  WEBHOOK_BASE
+    ? "Everything Desk: Production webhook mode"
+    : "Everything Desk: Demo mode"
+);
+
 </script>
 </body>
 </html>
