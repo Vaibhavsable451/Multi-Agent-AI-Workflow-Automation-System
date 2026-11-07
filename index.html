@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Everything Desk — Your AI Command Center</title>
+<title>Everything Desk ΓÇö Your AI Command Center</title>
 <meta name="description" content="Ask for groceries, recipes, electronics advice, spreadsheets or images. Everything filed and managed by AI agents.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,8 +30,11 @@
   --excel: #00e5a0;
   --other: #a78bfa;
 }
+
 *, *::before, *::after { box-sizing: border-box; }
+
 html { scroll-behavior: smooth; }
+
 body {
   margin: 0;
   font-family: 'Inter', system-ui, sans-serif;
@@ -41,7 +44,7 @@ body {
   overflow-x: hidden;
 }
 
-/* ── Animated background ── */
+/* ΓöÇΓöÇ Animated background ΓöÇΓöÇ */
 .bg-canvas {
   position: fixed;
   inset: 0;
@@ -58,13 +61,14 @@ body {
 .orb-1 { width: 700px; height: 700px; background: var(--accent); top: -200px; left: -200px; animation-delay: 0s; }
 .orb-2 { width: 500px; height: 500px; background: var(--accent2); bottom: -150px; right: -100px; animation-delay: -7s; }
 .orb-3 { width: 400px; height: 400px; background: var(--accent3); top: 40%; left: 45%; animation-delay: -13s; }
+
 @keyframes drift {
   0%, 100% { transform: translate(0, 0) scale(1); }
   33% { transform: translate(30px, -40px) scale(1.05); }
   66% { transform: translate(-20px, 30px) scale(0.95); }
 }
 
-/* ── Noise texture overlay ── */
+/* ΓöÇΓöÇ Noise texture overlay ΓöÇΓöÇ */
 body::before {
   content: '';
   position: fixed;
@@ -75,14 +79,457 @@ body::before {
   pointer-events: none;
 }
 
-/* Layout & components (omitted for brevity – unchanged from original) */
-.wrapper { position: relative; z-index: 1; padding: 0; max-width: 100%; margin: 0; height: 100vh; display: flex; flex-direction: column; }
-header { display: none; }
+/* ΓöÇΓöÇ Layout wrapper ΓöÇΓöÇ */
+.wrapper {
+  position: relative;
+  z-index: 1;
+  padding: 0;
+  max-width: 100%;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ΓöÇΓöÇ Header ΓöÇΓöÇ */
+header {
+  display: none;
+}
 .logo-group { display: flex; align-items: center; gap: 14px; }
-.logo-icon { width: 48px; height: 48px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 14px; display: grid; place-items: center; font-size: 22px; box-shadow: 0 0 24px var(--glow); flex-shrink: 0; }
-h1 { font-size: clamp(1.6rem, 3.5vw, 2.6rem); font-weight: 800; letter-spacing: -0.04em; margin: 0; background: linear-gradient(135deg, #fff 30%, var(--accent2) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.logo-icon {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 14px;
+  display: grid; place-items: center;
+  font-size: 22px;
+  box-shadow: 0 0 24px var(--glow);
+  flex-shrink: 0;
+}
+h1 {
+  font-size: clamp(1.6rem, 3.5vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin: 0;
+  background: linear-gradient(135deg, #fff 30%, var(--accent2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 .tagline { color: var(--muted); font-size: 0.88rem; font-weight: 400; margin: 2px 0 0; }
-/* ... (all other CSS from the original file) ... */
+.status-pill {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 14px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  font-size: 0.8rem; color: var(--muted); font-weight: 500;
+  backdrop-filter: blur(12px);
+}
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--grocery);
+  box-shadow: 0 0 8px var(--grocery);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ΓöÇΓöÇ Insight bar + category bar ΓöÇΓöÇ */
+.analytics-row {
+  display: flex; gap: 14px; align-items: stretch; margin-bottom: 20px; flex-wrap: wrap;
+}
+.insight-card {
+  flex: 1; min-width: 200px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 18px;
+  backdrop-filter: blur(16px);
+  display: flex; align-items: center; gap: 12px;
+}
+.insight-icon { font-size: 1.4rem; opacity: 0.7; }
+#insight { color: var(--muted); font-size: 0.88rem; line-height: 1.5; margin: 0; }
+
+/* ΓöÇΓöÇ Color bar ΓöÇΓöÇ */
+#bar {
+  display: flex; height: 6px; border-radius: 99px; overflow: hidden;
+  background: rgba(255,255,255,0.06);
+  margin-bottom: 16px;
+  gap: 2px;
+}
+#bar i { display: block; transition: flex-grow 0.7s cubic-bezier(0.2,1.2,0.4,1); border-radius: 99px; }
+
+/* ΓöÇΓöÇ Category chips ΓöÇΓöÇ */
+#chips {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px;
+}
+.chip {
+  font: inherit; font-size: 0.82rem; font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  display: flex; gap: 7px; align-items: center;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(12px);
+  letter-spacing: 0.01em;
+}
+.chip b {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--c, var(--muted));
+  box-shadow: 0 0 6px var(--c, transparent);
+  flex-shrink: 0;
+}
+.chip:hover { border-color: rgba(255,255,255,0.25); color: var(--ink); background: var(--surface2); }
+.chip[aria-pressed=true] {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(108,99,255,0.4);
+}
+.chip[aria-pressed=true] b { box-shadow: 0 0 8px #fff; }
+
+/* ΓöÇΓöÇ Main layout ΓöÇΓöÇ */
+main {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 0;
+  min-height: 0;
+}
+
+/* ΓöÇΓöÇ Chat panel ΓöÇΓöÇ */
+.chat-panel {
+  background: rgba(10,12,22,0.6);
+  border: none;
+  border-radius: 0;
+  display: flex; flex-direction: column; gap: 0;
+  position: static;
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  height: 100%;
+  max-height: 100vh;
+  overflow: hidden;
+  backdrop-filter: blur(24px);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+.chat-header {
+  padding: 20px 28px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(10,12,22,0.5);
+}
+.chat-header-icon {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 10px;
+  display: grid; place-items: center;
+  font-size: 16px;
+  box-shadow: 0 0 14px var(--glow);
+  flex-shrink: 0;
+}
+.chat-title { font-size: 0.95rem; font-weight: 700; margin: 0; }
+.chat-sub { font-size: 0.75rem; color: var(--muted); margin: 1px 0 0; }
+
+#log {
+  overflow-y: auto; flex: 1;
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 28px 32px;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+#log::-webkit-scrollbar { width: 4px; }
+#log::-webkit-scrollbar-track { background: transparent; }
+#log::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+.m {
+  max-width: 70%;
+
+  padding: 11px 15px;
+  border-radius: 18px 18px 18px 4px;
+  background: var(--surface2);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  font-size: 0.88rem;
+  color: var(--ink);
+  border: 1px solid var(--border);
+  animation: msg-in 0.3s ease;
+}
+.m.me {
+  align-self: flex-end;
+  background: linear-gradient(135deg, var(--accent), #8b5cf6);
+  border-color: transparent;
+  border-radius: 18px 18px 4px 18px;
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(108,99,255,0.35);
+}
+.m.err {
+  background: rgba(255,60,60,0.08);
+  border-color: rgba(255,80,80,0.3);
+  color: #ff8080;
+  border-radius: 10px;
+}
+.m img { display:block; width:100%; border-radius:10px; margin-top:10px; }
+
+@keyframes msg-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ΓöÇΓöÇ Quick suggestions ΓöÇΓöÇ */
+.quick-section { padding: 0 16px 8px; }
+.quick-label { font-size: 0.7rem; font-weight: 600; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 7px; }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.quick button {
+  font: inherit; font-size: 0.76rem; font-weight: 500;
+  padding: 5px 11px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  backdrop-filter: blur(8px);
+}
+.quick button:hover { color: var(--ink); border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.1); }
+
+/* ΓöÇΓöÇ Input area ΓöÇΓöÇ */
+.input-area { padding: 14px 16px 18px; border-top: 1px solid var(--border); }
+.input-wrap {
+  display: flex; gap: 8px; align-items: flex-end;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 8px 8px 8px 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.input-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108,99,255,0.2);
+}
+#in {
+  flex: 1; min-width: 0;
+  font: inherit; font-size: 0.9rem;
+  border: none; background: transparent;
+  color: var(--ink);
+  outline: none;
+  resize: none;
+  line-height: 1.5;
+  padding: 4px 0;
+}
+#in::placeholder { color: var(--muted2); }
+.send-btn {
+  flex-shrink: 0;
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  cursor: pointer;
+  display: grid; place-items: center;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px var(--glow);
+}
+.send-btn:hover { transform: scale(1.07); box-shadow: 0 6px 20px var(--glow); }
+.send-btn:active { transform: scale(0.95); }
+.send-btn:disabled { opacity: 0.4; cursor: wait; transform: none; }
+
+/* ΓöÇΓöÇ Board header ΓöÇΓöÇ */
+.board-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.board-title { font-size: 1rem; font-weight: 700; margin: 0; }
+.board-count {
+  font-size: 0.8rem; color: var(--muted);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 3px 10px;
+}
+
+/* ΓöÇΓöÇ Cards board ΓöÇΓöÇ */
+#board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+/* ΓöÇΓöÇ Card ΓöÇΓöÇ */
+.t {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  position: relative;
+  backdrop-filter: blur(16px);
+}
+.t::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+.t:hover {
+  transform: translateY(-4px) scale(1.015);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.18);
+}
+.card-accent-bar {
+  height: 3px;
+  background: var(--c, var(--accent));
+  box-shadow: 0 0 12px var(--c, var(--accent));
+  border-radius: 0;
+}
+.card-body { padding: 14px 16px 16px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.card-category {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--c, var(--muted));
+}
+.card-category::before {
+  content: '';
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--c, var(--muted));
+  box-shadow: 0 0 6px var(--c, transparent);
+}
+.t h3 { margin: 0; font-size: 0.95rem; font-weight: 700; line-height: 1.3; color: var(--ink); }
+.t p { margin: 0; color: var(--muted); font-size: 0.82rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.t img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--surface2); display: block; }
+.card-footer { margin-top: auto; padding-top: 10px; display: flex; align-items: center; justify-content: space-between; }
+.card-time { font-size: 0.72rem; color: var(--muted2); }
+.card-arrow { font-size: 0.85rem; color: var(--muted2); opacity: 0; transition: opacity 0.2s, transform 0.2s; }
+.t:hover .card-arrow { opacity: 1; transform: translate(2px,-2px); }
+
+.t.fresh { animation: pop-in 0.5s cubic-bezier(0.2, 1.4, 0.4, 1); }
+@keyframes pop-in {
+  from { transform: scale(0.88); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 24px;
+  border: 1px dashed var(--border2);
+  border-radius: 20px;
+  color: var(--muted);
+}
+.empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.4; }
+.empty-text { font-size: 0.9rem; }
+
+/* ΓöÇΓöÇ Dialog ΓöÇΓöÇ */
+dialog {
+  border: 1px solid var(--border2);
+  border-radius: 24px;
+  background: #111827;
+  color: var(--ink);
+  max-width: min(760px, 94vw);
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06);
+}
+dialog::backdrop { background: rgba(5,8,18,0.8); backdrop-filter: blur(8px); }
+.dlg-header {
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(108,99,255,0.08) 0%, transparent 100%);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+}
+.dlg-header h2 { margin: 0; font-size: 1.3rem; font-weight: 800; letter-spacing: -0.02em; }
+.dlg-close {
+  flex-shrink: 0; width: 36px; height: 36px;
+  border-radius: 99px; border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--muted);
+  cursor: pointer; font-size: 18px; font: inherit;
+  display: grid; place-items: center;
+  transition: all 0.18s;
+  line-height: 1;
+}
+.dlg-close:hover { background: rgba(255,255,255,0.12); color: var(--ink); }
+.dlg-body { padding: 24px 28px 28px; max-height: 70vh; overflow-y: auto; }
+.dlg-body p { margin: 0 0 16px; color: var(--muted); line-height: 1.7; font-size: 0.9rem; }
+dialog img { width: 100%; max-width: 460px; border-radius: 12px; margin-bottom: 16px; }
+
+/* ΓöÇΓöÇ Table ΓöÇΓöÇ */
+.tw { overflow: auto; margin: 16px 0; border-radius: 12px; border: 1px solid var(--border); }
+table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+th {
+  background: rgba(108,99,255,0.15);
+  color: var(--ink); font-weight: 700;
+  padding: 10px 14px; text-align: left;
+  border-bottom: 1px solid var(--border2);
+  letter-spacing: 0.02em;
+}
+td { padding: 9px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.03); color: var(--ink); }
+
+/* ΓöÇΓöÇ Buttons ΓöÇΓöÇ */
+.btn {
+  font: inherit; font-weight: 700; font-size: 0.85rem;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(108,99,255,0.35);
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(108,99,255,0.45); }
+.btn:active { transform: translateY(0); }
+.btn.alt {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--muted);
+  box-shadow: none;
+}
+.btn.alt:hover { color: var(--ink); background: rgba(255,255,255,0.1); box-shadow: none; }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+
+/* ΓöÇΓöÇ Scrollbar global ΓöÇΓöÇ */
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
+
+/* ΓöÇΓöÇ Focus ΓöÇΓöÇ */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+/* ΓöÇΓöÇ Typing indicator ΓöÇΓöÇ */
+.typing { display: flex; gap: 4px; align-items: center; padding: 14px; }
+.typing span {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--muted);
+  animation: bounce 1.2s ease-in-out infinite;
+}
+.typing span:nth-child(2) { animation-delay: 0.2s; }
+.typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-7px)} }
+
+/* ΓöÇΓöÇ Responsive ΓöÇΓöÇ */
+@media (max-width: 860px) {
+  main { grid-template-columns: 1fr; }
+  .chat-panel { position: static; max-height: 500px; }
+  .wrapper { padding: 16px 16px 40px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
@@ -96,10 +543,10 @@ h1 { font-size: clamp(1.6rem, 3.5vw, 2.6rem); font-weight: 800; letter-spacing: 
 
 <div class="wrapper">
 
-  <!-- Header (hidden in demo) -->
+  <!-- Header -->
   <header>
     <div class="logo-group">
-      <div class="logo-icon" aria-hidden="true">⚡</div>
+      <div class="logo-icon" aria-hidden="true">ΓÜí</div>
       <div>
         <h1>Everything Desk</h1>
         <p class="tagline">Your AI-powered command center</p>
@@ -111,16 +558,30 @@ h1 { font-size: clamp(1.6rem, 3.5vw, 2.6rem); font-weight: 800; letter-spacing: 
     </div>
   </header>
 
+  <!-- Analytics row (hidden) -->
+  <div class="analytics-row" style="display:none">
+    <div class="insight-card">
+      <span class="insight-icon" aria-hidden="true">Γ£ª</span>
+      <p id="insight">Ask for groceries, food ideas, electronics advice, spreadsheets or images. Everything is saved as a card.</p>
+    </div>
+  </div>
+
+  <!-- Color distribution bar (hidden) -->
+  <div id="bar" aria-hidden="true" style="display:none"></div>
+
+  <!-- Category filter chips (hidden) -->
+  <div id="chips" role="group" aria-label="Filter by category" style="display:none"></div>
+
   <!-- Main content -->
   <main>
 
     <!-- Chat panel -->
     <section class="chat-panel" aria-label="Chat with agents">
       <div class="chat-header">
-        <div class="chat-header-icon" aria-hidden="true">🤖</div>
+        <div class="chat-header-icon" aria-hidden="true">≡ƒñû</div>
         <div style="flex:1">
           <p class="chat-title">AI Agents</p>
-          <p class="chat-sub">Powered by intelligent agents · Ask anything</p>
+          <p class="chat-sub">Powered by intelligent agents ┬╖ Ask anything</p>
         </div>
         <div class="status-pill" style="font-size:0.75rem;padding:5px 12px">
           <span class="status-dot"></span>
@@ -147,6 +608,15 @@ h1 { font-size: clamp(1.6rem, 3.5vw, 2.6rem); font-weight: 800; letter-spacing: 
       </div>
     </section>
 
+    <!-- Cards board (hidden) -->
+    <section aria-label="Saved results" style="display:none">
+      <div class="board-header">
+        <h2 class="board-title">Saved Cards</h2>
+        <span class="board-count" id="board-count">0 items</span>
+      </div>
+      <div id="board"></div>
+    </section>
+
   </main>
 </div>
 
@@ -155,32 +625,18 @@ h1 { font-size: clamp(1.6rem, 3.5vw, 2.6rem); font-weight: 800; letter-spacing: 
 
 <script>
 // ============================================================
-// EVERYTHING DESK — UPDATED FRONTEND JAVASCRIPT
+// EVERYTHING DESK — AI AGENT COMMAND CENTER
 // ============================================================
 
-// Leave empty to use local demo mode.
-// For production, set this to your n8n webhook base URL
-// (e.g. "https://my-workspace.n8n.cloud/webhook")
-const BASE = "";   // <-- demo mode
+// Leave empty ("") for Demo Mode (works offline with built-in simulated responses and sample cards).
+// For n8n / backend production, put your webhook base URL (e.g. "http://localhost:5678/webhook" or "https://your-workspace.app.n8n.cloud/webhook")
+const BASE = "";
 
-const CATS = {
-  grocery: "Grocery",
-  food: "Food",
-  electronics: "Electronics",
-  image: "Images",
-  excel: "Excel",
-  other: "Other"
-};
+// Normalise webhook URL: remove trailing slashes and redundant endpoint suffixes
+const WEBHOOK_BASE = (BASE || "").trim().replace(/\/+$/, "").replace(/\/agent-dashboard$/, "").replace(/\/agent-chat$/, "");
 
-const CAT_ICONS = {
-  grocery: "🛒",
-  food: "🍽️",
-  electronics: "💻",
-  image: "🖼️",
-  excel: "📊",
-  other: "✦"
-};
-
+const CATS = { grocery: "Grocery", food: "Food", electronics: "Electronics", image: "Images", excel: "Excel", other: "Other" };
+const CAT_ICONS = { grocery: "🛒", food: "🍽️", electronics: "💻", image: "🖼️", excel: "📊", other: "✦" };
 const QUICK = [
   "Weekly grocery list under $60",
   "Quick vegetarian dinner",
@@ -191,163 +647,60 @@ const QUICK = [
 
 const sid = "s-" + Math.random().toString(36).slice(2, 10);
 const $ = id => document.getElementById(id);
-
 let rows = [];
 let filter = "all";
 
-// Normalise the webhook URL – strip trailing slashes.
-const WEBHOOK_BASE = BASE.trim().replace(/\/+$/, "");
-
-// ------------------------------------------------------------
-// DOM HELPERS
-// ------------------------------------------------------------
-const el = (tag, props = {}, ...kids) => {
+const el = (tag, props={}, ...kids) => {
   const e = Object.assign(document.createElement(tag), props);
   e.append(...kids);
   return e;
 };
 
-const col = c => `var(--${CATS[c] ? c : "other"})`;
+const col = c => `var(--${CATS[c]?c:'other'})`;
 
 const fmtTime = ts => {
   if (!ts) return "";
   const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
-// ------------------------------------------------------------
-// SAFE RESPONSE HANDLER
-// ------------------------------------------------------------
-async function readJSON(response) {
-  const text = await response.text();
-
-  if (!text.trim()) {
-    throw new Error(`Empty server response (HTTP ${response.status}). Check your n8n Respond to Webhook node.`);
+// Safe JSON parser to prevent "Unexpected end of JSON input"
+async function safeJSON(res) {
+  const text = await res.text();
+  if (!text || !text.trim()) {
+    throw new Error(`Empty response from server (HTTP ${res.status}). Verify your n8n workflow is returning data.`);
   }
-
-  let data;
   try {
-    data = JSON.parse(text);
-  } catch (e) {
-    throw new Error(`Backend returned invalid JSON: ${text.slice(0, 200)}`);
+    return JSON.parse(text);
+  } catch (err) {
+    throw new Error(`Invalid JSON received (HTTP ${res.status}): ${text.slice(0, 150)}`);
   }
-
-  if (!response.ok) {
-    throw new Error(data.message || data.error || `Server error: HTTP ${response.status}`);
-  }
-
-  return data;
 }
 
-// ------------------------------------------------------------
-// RESPONSE NORMALISATION
-// ------------------------------------------------------------
-function normalizeResponse(data) {
-  let result = Array.isArray(data) ? data[0] : data;
-
-  if (!result || typeof result !== "object") {
-    throw new Error("The AI backend returned an invalid response.");
-  }
-
-  if (result.data && typeof result.data === "object") {
-    result = result.data;
-  }
-
-  const reply = result.reply || result.output || result.text || result.response || result.message;
-
-  if (typeof reply !== "string" || !reply.trim()) {
-    throw new Error("The AI workflow responded, but no reply text was found. Check your n8n response mapping.");
-  }
-
-  return { ...result, reply };
-}
-
-// ------------------------------------------------------------
-// SAMPLE DATA (demo mode)
-// ------------------------------------------------------------
-const SAMPLE_ROWS = [
-  {
-    category: "grocery",
-    title: "Budget Grocery List under $60",
-    details: "A weekly plan covering produce, dairy, protein and pantry staples.",
-    table_json: JSON.stringify({
-      columns: ["Item", "Qty", "Est. Price"],
-      rows: [
-        ["Bananas", "6 pcs", "$0.70"],
-        ["Apples", "4 pcs", "$2.00"],
-        ["Eggs", "1 dozen", "$2.20"],
-        ["Milk", "1 gal", "$3.30"],
-        ["Brown rice", "1 lb", "$1.80"],
-        ["Lentils", "1 lb", "$1.50"],
-        ["Black beans", "2 cans", "$1.60"]
-      ]
-    }),
-    timestamp: "2026-10-30T06:29:27.643Z"
-  },
-  {
-    category: "food",
-    title: "Quick Veg Dinner",
-    details: "Chickpea and spinach curry with rice. About 30 minutes, serves 2.",
-    timestamp: "2026-10-30T06:21:00.000Z"
-  },
-  {
-    category: "electronics",
-    title: "Budget Laptop Pick",
-    details: "Look for 16 GB RAM, 512 GB SSD and a full HD screen. Compare battery life before buying.",
-    timestamp: "2026-10-30T06:39:05.220Z"
-  },
-  {
-    category: "grocery",
-    title: "Weekly Grocery List",
-    details: "Rice 2 kg, eggs 12, spinach 1 bag, milk 2 L, bananas 6.",
-    timestamp: "2026-10-30T06:37:40.505Z"
-  },
-  {
-    category: "other",
-    title: "iPhone 15 Pro vs Galaxy S24 Ultra",
-    details: "Compare camera, battery, performance and ecosystem.",
-    timestamp: "2026-10-30T06:39:05.220Z"
-  }
-];
-
-// ------------------------------------------------------------
-// COUNTS & FILTER UI
-// ------------------------------------------------------------
+// Analytics and category filters
 function counts() {
   const c = {};
   rows.forEach(r => c[r.category] = (c[r.category] || 0) + 1);
   return c;
 }
+
 function renderChips() {
   const c = counts();
   const bar = $("bar");
   const chips = $("chips");
 
-  bar.replaceChildren(
-    ...Object.keys(CATS).map(k => {
-      const i = el("i");
-      i.style.background = col(k);
-      i.style.flex = (c[k] || 0) + " 1 0";
-      return i;
-    })
-  );
+  bar.replaceChildren(...Object.keys(CATS).map(k => {
+    const i = el("i");
+    i.style.background = col(k);
+    i.style.flex = (c[k] || 0) + " 1 0";
+    return i;
+  }));
 
   const mk = (k, label, n) => {
-    const b = el(
-      "button",
-      { className: "chip" },
-      el("b"),
-      label,
-      el("sup", { style: "font-size:0.68rem;margin-left:4px;opacity:0.7" }, String(n))
-    );
+    const b = el("button", { className: "chip" }, el("b"), label, el("sup", { style: "font-size:0.68rem;margin-left:4px;opacity:0.7" }, String(n)));
     b.style.setProperty("--c", k === "all" ? "rgba(255,255,255,0.6)" : col(k));
     b.setAttribute("aria-pressed", filter === k ? "true" : "false");
-    b.onclick = () => {
-      filter = k;
-      renderChips();
-      renderBoard();
-    };
+    b.onclick = () => { filter = k; renderChips(); renderBoard(); };
     return b;
   };
 
@@ -357,31 +710,28 @@ function renderChips() {
   );
 }
 
-// ------------------------------------------------------------
-// EXCEL / CSV DOWNLOAD
-// ------------------------------------------------------------
+// Excel & CSV export
 function parseTable(r) {
-  try { return r.table_json ? JSON.parse(r.table_json) : null; }
-  catch { return null; }
+  try { return r.table_json ? JSON.parse(r.table_json) : null; } catch(e) { return null; }
 }
+
 function download(table, name) {
   if (!table || !Array.isArray(table.columns) || !Array.isArray(table.rows)) return;
   const data = [table.columns, ...table.rows];
+
   if (window.XLSX) {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), "Data");
-    XLSX.writeFile(wb, name + ".xlsx");
+    XLSX.writeFile(wb, (name || "export") + ".xlsx");
     return;
   }
-  const csv = data.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-  const a = el("a", { href: URL.createObjectURL(new Blob([csv], { type: "text/csv" })), download: name + ".csv" });
+
+  const csv = data.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(",")).join("\n");
+  const a = el("a", { href: URL.createObjectURL(new Blob([csv], { type: "text/csv" })), download: (name || "export") + ".csv" });
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-// ------------------------------------------------------------
-// TABLE RENDERING
-// ------------------------------------------------------------
 function tableEl(t) {
   const w = el("div", { className: "tw" });
   const tb = el("table");
@@ -393,16 +743,16 @@ function tableEl(t) {
   return w;
 }
 
-// ------------------------------------------------------------
-// DETAIL DIALOG
-// ------------------------------------------------------------
+// Dialog detail popup
 function open(r) {
   const d = $("dlg");
   const t = parseTable(r);
   const header = el("div", { className: "dlg-header" });
-  const h2 = el("h2", { id: "dlg-title" }, r.title || "Details");
-  const closeBtn = el("button", { className: "dlg-close", onclick: () => d.close(), "aria-label": "Close" }, "×");
-  header.append(h2, closeBtn);
+  header.append(
+    el("h2", { id: "dlg-title" }, r.title || "Details"),
+    el("button", { className: "dlg-close", onclick: () => d.close(), "aria-label": "Close" }, "×")
+  );
+
   const body = el("div", { className: "dlg-body" });
   if (r.details) body.append(el("p", {}, r.details));
   if (r.image_url) body.append(el("img", { src: r.image_url, alt: r.title || "Image", loading: "lazy" }));
@@ -412,13 +762,12 @@ function open(r) {
     btnRow.append(el("button", { className: "btn", onclick: () => download(t, r.title || "data") }, "📥 Download Excel"));
     body.append(btnRow);
   }
+
   d.replaceChildren(header, body);
   d.showModal();
 }
 
-// ------------------------------------------------------------
-// CARD BOARD
-// ------------------------------------------------------------
+// Render cards board
 function renderBoard(freshId) {
   const list = rows.filter(r => filter === "all" || r.category === filter);
   const b = $("board");
@@ -434,104 +783,169 @@ function renderBoard(freshId) {
     return;
   }
 
-  b.replaceChildren(
-    ...list.map(r => {
-      const card = el("button", { className: "t" + (r.timestamp === freshId ? " fresh" : ""), onclick: () => open(r) });
-      card.style.setProperty("--c", col(r.category));
-      const accentBar = el("div", { className: "card-accent-bar" });
-      accentBar.style.background = col(r.category);
-      accentBar.style.boxShadow = `0 0 10px ${col(r.category)}`;
-      card.append(accentBar);
-      if (r.image_url) card.append(el("img", { src: r.image_url, alt: "", loading: "lazy" }));
-      const body = el("div", { className: "card-body" });
-      body.append(
-        el("span", { className: "card-category" }, (CAT_ICONS[r.category] || "✦") + " " + (CATS[r.category] || "Other")),
-        el("h3", {}, r.title || "Untitled")
-      );
-      if (r.details) body.append(el("p", {}, r.details));
-      const footer = el("div", { className: "card-footer" });
-      footer.append(el("span", { className: "card-time" }, fmtTime(r.timestamp)));
-      footer.append(el("span", { className: "card-arrow", ariaHidden: "true" }, "↗"));
-      body.append(footer);
-      card.append(body);
-      return card;
-    })
-  );
+  b.replaceChildren(...list.map(r => {
+    const card = el("button", { className: "t" + (r.timestamp === freshId ? " fresh" : ""), onclick: () => open(r) });
+    card.style.setProperty("--c", col(r.category));
+
+    const accentBar = el("div", { className: "card-accent-bar" });
+    accentBar.style.background = col(r.category);
+    accentBar.style.boxShadow = `0 0 10px ${col(r.category)}`;
+    card.append(accentBar);
+
+    if (r.image_url) card.append(el("img", { src: r.image_url, alt: "", loading: "lazy" }));
+
+    const body = el("div", { className: "card-body" });
+    body.append(el("span", { className: "card-category" }, `${CAT_ICONS[r.category] || "✦"} ${CATS[r.category] || "Other"}`));
+    body.append(el("h3", {}, r.title || "Untitled"));
+    if (r.details) body.append(el("p", {}, r.details));
+
+    const footer = el("div", { className: "card-footer" });
+    footer.append(el("span", { className: "card-time" }, fmtTime(r.timestamp)));
+    footer.append(el("span", { className: "card-arrow", "aria-hidden": "true" }, "↗"));
+    body.append(footer);
+
+    card.append(body);
+    return card;
+  }));
 }
 
-// ------------------------------------------------------------
-// CHAT MESSAGES
-// ------------------------------------------------------------
-function say(text, cls = "", extra) {
+// Chat log message display
+function say(text, cls="", extra) {
   const m = el("div", { className: "m " + cls }, text);
   if (extra) m.append(...extra);
   $("log").append(m);
   $("log").scrollTop = $("log").scrollHeight;
   return m;
 }
+
 function showTyping() {
-  const m = el("div", { className: "m" }, el("div", { className: "typing" }, el("span"), el("span"), el("span")));
+  const m = el("div", { className: "m" });
+  const t = el("div", { className: "typing" }, el("span"), el("span"), el("span"));
+  m.append(t);
   $("log").append(m);
   $("log").scrollTop = $("log").scrollHeight;
   return m;
 }
 
-// ------------------------------------------------------------
-// DEMO MODE RESPONSE
-// ------------------------------------------------------------
-function demo(msg) {
+// Built-in Demo mode generator
+const demo = msg => {
   const l = msg.toLowerCase();
-  const cat = /draw|image|picture|photo/.test(l) ? "image"
-          : /sheet|excel|spreadsheet/.test(l) ? "excel"
-          : /laptop|phone|tv|camera|gadget/.test(l) ? "electronics"
-          : /dinner|recipe|cook|meal/.test(l) ? "food"
-          : /grocery|shopping|buy food/.test(l) ? "grocery"
-          : "other";
+  const cat = /draw|image|picture|photo/.test(l) ? "image" :
+              /sheet|excel|spreadsheet|expense|budget|cost/.test(l) ? "excel" :
+              /laptop|phone|tv|camera|gadget|pc|device/.test(l) ? "electronics" :
+              /dinner|recipe|cook|meal|food|lunch|breakfast/.test(l) ? "food" :
+              /grocery|shopping|buy food|market/.test(l) ? "grocery" : "other";
 
-  const table = (cat === "excel" || cat === "grocery") ? {
-    columns: ["Item", "Qty", "Est. Price"],
-    rows: [
-      ["Rice", "2 kg", "$4.50"],
-      ["Eggs", "12", "$3.20"],
-      ["Spinach", "1 bag", "$2.40"],
-      ["Bananas", "6", "$1.80"],
-      ["Milk", "2 L", "$3.10"]
-    ]
-  } : null;
+  let table = null;
+  if (cat === "excel") {
+    table = {
+      columns: ["Category", "Description", "Budget ($)", "Actual ($)"],
+      rows: [
+        ["Housing", "Rent / Mortgage", "$1,200", "$1,200"],
+        ["Utilities", "Electricity, Gas, Water", "$180", "$165"],
+        ["Food", "Groceries & Dining", "$450", "$420"],
+        ["Transportation", "Fuel, Public Transit", "$150", "$130"],
+        ["Subscriptions", "Streaming & Software", "$60", "$60"],
+        ["Savings", "Emergency Fund Deposit", "$300", "$350"]
+      ]
+    };
+  } else if (cat === "grocery") {
+    table = {
+      columns: ["Item", "Qty", "Est. Price"],
+      rows: [
+        ["Rice", "2 kg", "$4.50"],
+        ["Eggs", "12 pcs", "$3.20"],
+        ["Spinach", "1 bag", "$2.40"],
+        ["Bananas", "6 pcs", "$1.80"],
+        ["Milk", "2 L", "$3.10"]
+      ]
+    };
+  }
+
+  const reply = cat === "image"
+    ? "✦ Generated your requested artwork using the AI Image Agent."
+    : cat === "excel"
+    ? "✦ Created your requested spreadsheet. You can review the details or click the download button below to export as Excel."
+    : '✦ Here is the breakdown curated by your AI Agent workflow for: "' + msg + '".';
 
   return {
-    reply: "✦ Demo mode — this is a sample response. Configure your n8n production webhook URL to connect the real AI agents.",
+    reply: reply,
     category: cat,
-    saved: { title: msg.slice(0, 48), details: "Demo summary for: " + msg },
+    saved: { title: msg.slice(0, 48), details: "AI Agent summary for: " + msg },
     table,
     table_json: table ? JSON.stringify(table) : "",
     timestamp: new Date().toISOString(),
-    image_url: ""
+    image_url: cat === "image" ? "https://image.pollinations.ai/prompt/" + encodeURIComponent(msg) + "?width=768&height=768&nologo=true" : ""
   };
-}
+};
 
-// ------------------------------------------------------------
-// CHAT API
-// ------------------------------------------------------------
+// Send prompt to agents / webhook
 async function ask(msg) {
   if (!WEBHOOK_BASE) {
     await new Promise(r => setTimeout(r, 600));
     return demo(msg);
   }
 
-  const res = await fetch(`${WEBHOOK_BASE}/agent-chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: msg, sessionId: sid })
-  });
+  try {
+    const res = await fetch(WEBHOOK_BASE + "/agent-chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg, sessionId: sid })
+    });
 
-  const data = await readJSON(res);
-  return normalizeResponse(data);
+    if (!res.ok) throw new Error("Agents returned HTTP " + res.status + ". Check that the n8n workflow is active.");
+    return await safeJSON(res);
+  } catch (err) {
+    console.warn("Backend unavailable, using simulated response:", err);
+    const fallback = demo(msg);
+    fallback.reply = "⚠️ (Backend webhook offline, showing preview response)\n\n" + fallback.reply;
+    return fallback;
+  }
 }
 
-// ------------------------------------------------------------
-// DASHBOARD API
-// ------------------------------------------------------------
+// Load dashboard cards
+const SAMPLE_ROWS = [
+  {
+    category: "grocery",
+    title: "Budget Grocery List <$60>",
+    details: "A $60-max weekly plan covering produce, dairy, protein, and pantry staples.",
+    table_json: JSON.stringify({
+      columns: ["Item", "Qty", "Est. Price"],
+      rows: [["Bananas", "6 pcs", "$0.70"], ["Apples", "4 pcs", "$2.00"], ["Eggs", "1 dozen", "$2.20"], ["Milk", "1 gal", "$3.30"], ["Brown rice", "1 lb", "$1.80"], ["Lentils", "1 lb", "$1.50"], ["Black beans", "2 cans", "$1.60"]]
+    }),
+    timestamp: "2026-10-30T06:29:27.643Z"
+  },
+  {
+    category: "excel",
+    title: "Monthly Expense Spreadsheet",
+    details: "Automated personal finance tracking sheet categorized by essentials, discretionary, and savings.",
+    table_json: JSON.stringify({
+      columns: ["Category", "Allocated ($)", "Spent ($)"],
+      rows: [["Housing", "$1200", "$1200"], ["Groceries", "$400", "$370"], ["Utilities", "$180", "$160"], ["Transport", "$150", "$140"]]
+    }),
+    timestamp: "2026-10-30T06:25:00.000Z"
+  },
+  {
+    category: "food",
+    title: "Quick Veg Dinner",
+    details: "Chickpea and spinach curry with rice. About 30 minutes, serves 2.",
+    timestamp: "2026-10-30T06:21:00.000Z"
+  },
+  {
+    category: "electronics",
+    title: "Budget Laptop Pick",
+    details: "Look for 16 GB RAM, 512 GB SSD and a full HD screen. Compare battery life before buying.",
+    timestamp: "2026-10-30T06:39:05.220Z"
+  },
+  {
+    category: "image",
+    title: "Futuristic Cyberpunk Skyline",
+    details: "Ultra-detailed 4K neon illuminated city with flying vehicles and glowing holographic towers.",
+    image_url: "https://image.pollinations.ai/prompt/futuristic%20city%20at%20night%20cyberpunk%20neon?width=768&height=768&nologo=true",
+    timestamp: "2026-10-30T06:40:00.000Z"
+  }
+];
+
 async function load() {
   if (!WEBHOOK_BASE) {
     rows = [...SAMPLE_ROWS];
@@ -541,31 +955,27 @@ async function load() {
   }
 
   try {
-    const res = await fetch(`${WEBHOOK_BASE}/agent-dashboard`, {
-      method: "GET",
-      headers: { "Accept": "application/json" }
-    });
-    const data = await readJSON(res);
-    const result = Array.isArray(data) ? data[0] : data;
-    rows = Array.isArray(result.rows) ? result.rows : [];
-    if (result.insight) $("insight").textContent = result.insight;
+    const res = await fetch(WEBHOOK_BASE + "/agent-dashboard");
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const d = await safeJSON(res);
+    rows = d.rows || [...SAMPLE_ROWS];
+    if (d.insight) $("insight").textContent = d.insight;
   } catch (e) {
-    console.error("Dashboard error:", e);
+    console.warn("Dashboard webhook offline, loading sample cards:", e);
     rows = [...SAMPLE_ROWS];
-    say("Dashboard connection failed. Showing sample cards instead. Check your n8n dashboard webhook.", "err");
+    say("Could not connect to live webhook. Loaded sample cards in demo mode.", "err");
   }
 
   renderChips();
   renderBoard();
 }
 
-// ------------------------------------------------------------
-// CHAT SUBMISSION
-// ------------------------------------------------------------
+// Form submission handler
 $("f").onsubmit = async e => {
   e.preventDefault();
   const v = $("in").value.trim();
   if (!v) return;
+
   $("in").value = "";
   $("go").disabled = true;
   say(v, "me");
@@ -574,12 +984,22 @@ $("f").onsubmit = async e => {
   try {
     const d = await ask(v);
     typing.remove();
+
     const extra = [];
+    if (d.image_url) {
+      extra.push(el("img", { src: d.image_url, alt: "Generated image", loading: "lazy" }));
+    }
 
-    if (d.image_url) extra.push(el("img", { src: d.image_url, alt: "Generated image", loading: "lazy" }));
-
-    const table = d.table || (d.table_json ? parseTable(d) : null);
-    if (table) extra.push(el("button", { className: "btn alt", style: "margin-top:10px", onclick: () => download(table, d.saved?.title || "data") }, "📥 Download Excel"));
+    const t = d.table || (d.table_json ? parseTable(d) : null);
+    if (t) {
+      extra.push(
+        el("button", {
+          className: "btn alt",
+          style: "margin-top:10px",
+          onclick: () => download(t, d.saved?.title || "spreadsheet")
+        }, "📥 Download Excel")
+      );
+    }
 
     say(d.reply, "", extra);
 
@@ -590,7 +1010,7 @@ $("f").onsubmit = async e => {
         title: d.saved.title || v.slice(0, 48),
         details: d.saved.details || d.reply,
         image_url: d.image_url || "",
-        table_json: d.table_json || (table ? JSON.stringify(table) : ""),
+        table_json: d.table_json || (t ? JSON.stringify(t) : ""),
         timestamp
       });
       renderChips();
@@ -598,33 +1018,34 @@ $("f").onsubmit = async e => {
     }
   } catch (err) {
     typing.remove();
-    console.error("AI chat error:", err);
-    say(err.message || "Could not reach the AI agents.", "err");
+    say(err.message || "Could not reach the agents.", "err");
   } finally {
     $("go").disabled = false;
     $("in").focus();
   }
 };
 
-// ------------------------------------------------------------
-// DIALOG BACKDROP CLICK TO CLOSE
-// ------------------------------------------------------------
-$("dlg").addEventListener("click", e => { if (e.target === $("dlg")) $("dlg").close(); });
+// Dialog backdrop click
+$("dlg").addEventListener("click", e => {
+  if (e.target === $("dlg")) $("dlg").close();
+});
 
-// ------------------------------------------------------------
-// QUICK PROMPTS
-// ------------------------------------------------------------
+// Quick prompts setup
 $("quick").replaceChildren(
-  ...QUICK.map(q => el("button", { type: "button", onclick: () => { $("in").value = q; $("f").requestSubmit(); } }, q))
+  ...QUICK.map(q => el("button", {
+    type: "button",
+    onclick: () => {
+      $("in").value = q;
+      $("f").requestSubmit();
+    }
+  }, q))
 );
 
-// ------------------------------------------------------------
-// INITIALISE
-// ------------------------------------------------------------
+// Initial greeting and data loading
 say("✦ Hello! I'm your AI assistant. Ask me anything — groceries, recipes, tech advice, spreadsheets or images.");
 load();
 
-console.log(WEBHOOK_BASE ? "Everything Desk: Production webhook mode" : "Everything Desk: Demo mode");
+console.log(WEBHOOK_BASE ? "Everything Desk: Connected to " + WEBHOOK_BASE : "Everything Desk: Running in local Demo mode");
 </script>
 </body>
 </html>
